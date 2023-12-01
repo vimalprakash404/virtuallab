@@ -74,7 +74,9 @@ def post_jupiter():
             result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
             return jsonify(result)
         
-
+@app.route('/', methods=['GET'])
+def hello():
+    return 'Hello, World!'
 if __name__ == "__main__":
     # Set the Git repository URL, container name
     repo_url = "https://github.com/vimalprakash404/python.git"
