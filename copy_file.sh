@@ -8,7 +8,8 @@ fi
 
 # Set the Container ID and Local Destination
 CONTAINER_ID=$1
-LOCAL_DESTINATION="./local_destination"
+NAME=$2
+LOCAL_DESTINATION="./files/$NAME"
 
 # Copy files from the container to the local machine
 docker cp $CONTAINER_ID:/app $LOCAL_DESTINATION

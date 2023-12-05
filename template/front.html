@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repo Loader</title>
+</head>
+<body>
+
+    <label for="repoInput">Enter Repo:</label>
+    <input type="text" id="repoInput" placeholder="Enter repo name">
+    <button onclick="loadRepo()">Load Repo</button>
+
+    <br>
+
+    <iframe id="repoIframe" width="100%" height="700" frameborder="0"></iframe>
+
+    <script>
+        function checkLink( link) {
+        
+
+        // Make a HEAD request to the server
+        fetch(link, {
+            method: 'GET'
+        })
+        .then(response => {
+            // Check if the status is in the range 200-299 (success)
+            if (response.ok) {
+                console.log("loaded");
+                document.getElementById('repoIframe').src = link;
+            } else {
+                console.log("not loaded")
+                checkLink(link);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            checkLink(link);
+        });
+    }
+        function loadRepo() {
+            // Get the value of the repo input
+            const repoName = document.getElementById('repoInput').value;
+            // Make a POST request to the server
+            fetch('http://localhost:3001/create/lab', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ repo: repoName }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Get the HTTP URL from the server response
+                const httpUrl ="http://localhost:"+data.port;
+                console.log(httpUrl);
+                // Load the HTTP URL into the iframe
+                checkLink(httpUrl);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        
+    </script>
+
+</body>
+</html>

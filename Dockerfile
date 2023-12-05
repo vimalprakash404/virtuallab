@@ -1,26 +1,28 @@
-# Stage 1: Clone repository and prepare environment
-FROM continuumio/miniconda3 as builder
+# Use the official MySQL image as the base image
+FROM mysql:latest
 
-ARG REPOSITORY_URL
+# Set the root password for MySQL
+ENV MYSQL_ROOT_PASSWORD=mysecretpassword
 
-WORKDIR /app
+# Create a new database and user for your application
+ENV MYSQL_DATABASE=mydatabase
+ENV MYSQL_USER=myuser
+ENV MYSQL_PASSWORD=mypassword
 
-# Clone the repository
-RUN apt-get update && apt-get install -y git
-RUN git clone $REPOSITORY_URL .
+# Create a directory to store scripts that will be executed on container startup
+COPY ./sql-scripts/ /docker-entrypoint-initdb.d/
 
+# Expose MySQL port
+EXPOSE 3306
 
-# Stage 2: Create the final image with only necessary files
-FROM continuumio/miniconda3
+# Use the official Visual Studio Code server image as the base image
+FROM codercom/code-server:latest
 
-WORKDIR /app
+# Expose Visual Studio Code server port
+EXPOSE 8080
 
-# Copy only the files needed for the application
-COPY --from=builder /app .
+# Set up your development environment here if needed
+# For example, you can install extensions, configure settings, etc.
 
-EXPOSE 8845
-
-# Set the working directory to the desired folder
-WORKDIR /app
-
-CMD ["jupyter", "lab", "--ip='0.0.0.0'", "--port=8845", "--no-browser", "--allow-root"]
+# Start Visual Studio Code server on container startup
+CMD ["code-server", "--auth", "none"]
