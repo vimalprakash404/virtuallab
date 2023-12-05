@@ -1,0 +1,20 @@
+
+FROM node:14
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# Clone your React app from the Git repository
+RUN git clone https://github.com/vimalprakash404/React-First-App.git .
+
+# Install app dependencies
+RUN npm install
+
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Define environment variable
+ENV REACT_APP_API_URL http://localhost:3001
+
+# Run the application
+CMD ["npm", "start"]

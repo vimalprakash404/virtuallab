@@ -32,6 +32,25 @@ def create_vscode_container(repo_url):
         tty=True,
     )
     return container.id, port
+
+def create_vscode_container_node(repo_url):
+    client = docker.from_env()
+
+    # Build the Docker image
+    image, _ = client.images.build(path='.', tag='my-vscode-server', dockerfile='Dockerfile')
+
+    # Find an available port
+    port = get_free_tcp_port()
+
+    # Create and run the Docker container
+    container = client.containers.run(
+        image,
+        detach=True,
+        ports={f'{port}/tcp': port},
+        environment={'GIT_REPO': repo_url, 'PORT': port},
+        tty=True,
+    )
+    return container.id, port
 def create_jupiter_container(repo_url):
     client = docker.from_env()
 
@@ -61,6 +80,19 @@ def post_example():
             return jsonify(result)
         else :
             container_id, allocated_port = create_vscode_container(data["repo"])
+            result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
+            return jsonify(result)
+
+@app.route('/create/lab/node', methods=['POST'])
+def node_example():
+    if request.method == 'POST':
+        data = request.get_json()
+        # Do something with the posted data
+        if (not("repo" in data)):
+            result={"error" : True , "message" : "please the repo"}
+            return jsonify(result)
+        else :
+            container_id, allocated_port = create_vscode_container_node(data["repo"])
             result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
             return jsonify(result)
 
@@ -101,7 +133,7 @@ if __name__ == "__main__":
     # Set the Git repository URL, container name
     repo_url = "https://github.com/vimalprakash404/python.git"
     container_name = "vscode-containers-4569"
-    api_port = 3001
+    api_port = 3005
     app.run(host='0.0.0.0', port=api_port)
 
     # Create the VS Code Server container
