@@ -8,6 +8,20 @@ import subprocess
 
 app = Flask(__name__)
 CORS(app)
+
+
+# function to check image is exist or not 
+def image_exists(client , image_name ):
+    try : 
+        client.images.get(image_name)
+        return True 
+    except docker.errors.ImageNotFound:
+        return False 
+
+
+
+
+
 def get_free_tcp_port():
     # Create a socket to find an available port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -16,16 +30,19 @@ def get_free_tcp_port():
 
 def create_vscode_container(repo_url):
     client = docker.from_env()
+    image_name = "vs-code-python"
 
-    # Build the Docker image
-    image, _ = client.images.build(path='.', tag='my-vscode-server', dockerfile='Sample')
+    if  not image_exists(client, image_name):
+        # Build the Docker image
+        image, _ = client.images.build(path='.', tag=image_name, dockerfile='Sample')
+        print("image created")
 
     # Find an available port
     port = get_free_tcp_port()
 
     # Create and run the Docker container
     container = client.containers.run(
-        image,
+        image_name,
         detach=True,
         ports={f'{port}/tcp': port},
         environment={'GIT_REPO': repo_url, 'PORT': port},
@@ -44,7 +61,7 @@ def create_vscode_container_node(repo_url):
 
     # Create and run the Docker container
     container = client.containers.run(
-        image,
+        image_name,
         detach=True,
         ports={f'{port}/tcp': port},
         environment={'GIT_REPO': repo_url, 'PORT': port},
@@ -70,6 +87,43 @@ def create_jupiter_container(repo_url):
     )
 
     return container.id, port
+
+def remove_container_by_id(container_id):
+    client = docker.from_env()
+    try :
+        container = client.containers.get(container_id)
+        container.stop()
+        container.remove()
+        return True
+    except docker.errors.NotFound :
+        return False
+
+
+def copy_file_to_container(container_id, name , assingment_id , course_id):
+    script_path = "copy_file.sh"
+    script_arguments =  [container_id,name+"_"+assingment_id+"_"+course_id]
+    try :
+        subprocess.run(['sh',script_path]+script_arguments, check= True)
+        return True
+    except subprocess.CalledProcessError as e:
+        return False
+
+@app.route("/savetoserver", methods=['POST'])
+def post_save():
+    if request.method == 'POST' : 
+        data = request.get_json()
+        username  = data["username"]
+        container_id = data["container_id"]
+        assingment_id = data["assingment_id"]
+        course_id= data["course_id"]
+        if (copy_file_to_container(container_id,username,assingment_id,course_id)):
+            result={"error" : False , "message" : "data copied"}
+            return jsonify(result)
+        else :
+            result={"error" : True , "message" : "Some Error"}
+            return jsonify(result)
+
+
 @app.route('/create/lab', methods=['POST'])
 def post_example():
     if request.method == 'POST':
@@ -125,7 +179,17 @@ def copy_data():
         except subprocess.CalledProcessError as e:
             result = {"error" : True , "error_details" : e}
             return jsonify(result)
-        
+
+@app.route("/remove", methods= ["POST"])
+def remove_container(): 
+    data = request.get_json()
+    container_id = data["container_id"]
+    if remove_container_by_id(container_id):
+        result = {"error" :False , "message" :  "removed successfully"}
+        return jsonify(result)
+    else :
+        result = {"error" :True , "message" :  "connot removed "}
+        return jsonify(result)
 @app.route('/', methods=['GET'])
 def hello():
     return 'Hello, World!'
