@@ -1,0 +1,9 @@
+docker build -t copyimage10 -f PythonOpenContainer .
+ docker run -e FOLDER=/samplea -e PORT=8062 -p 8062:8062 
+
+
+ docker build --build-arg FOLDER=your_new_folder -t copyimage10 -f PythonOpenContainer .
+
+
+docker build --build-arg FOLDER=files/vimal_node-assingment_server-sample-2024 -t 
+copyimage11 -f PythonOpenContainer .

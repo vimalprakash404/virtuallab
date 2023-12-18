@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess 
 
-
+from database import vlab_db as database
 
 app = Flask(__name__)
 CORS(app)
@@ -50,11 +50,36 @@ def create_vscode_container(repo_url):
     )
     return container.id, port
 
+
+def open_vscode_container(repo_url ,filepath):
+    client = docker.from_env()
+    image_name = filepath
+    build_args = {'FOLDER': filepath}
+    if  not image_exists(client, image_name):
+        # Build the Docker image
+        image, _ = client.images.build(path='.', tag=image_name, dockerfile='PythonOpenContainer',buildargs=build_args)
+        print("image created")
+
+    # Find an available port
+    port = get_free_tcp_port()
+
+    # Create and run the Docker container
+    container = client.containers.run(
+        image_name,
+        detach=True,
+        ports={f'{port}/tcp': port},
+        environment={'GIT_REPO': repo_url, 'PORT': port, 'FOLDER' : filepath},
+        tty=True,
+    )
+    return container.id, port
+
+
 def create_vscode_container_node(repo_url):
+    image_name="vs-code-nodejs"
     client = docker.from_env()
 
     # Build the Docker image
-    image, _ = client.images.build(path='.', tag='my-vscode-server', dockerfile='Dockerfile')
+    image, _ = client.images.build(path='.', tag=image_name, dockerfile='Dockerfile')
 
     # Find an available port
     port = get_free_tcp_port()
@@ -68,15 +93,13 @@ def create_vscode_container_node(repo_url):
         tty=True,
     )
     return container.id, port
+
 def create_jupiter_container(repo_url):
     client = docker.from_env()
-
     # Build the Docker image
     image, _ = client.images.build(path='.', tag='my-vscode-server', dockerfile='Dockerfile')
-
     # Find an available port
     port = get_free_tcp_port()
-
     # Create and run the Docker container
     container = client.containers.run(
         image,
@@ -85,7 +108,6 @@ def create_jupiter_container(repo_url):
         environment={'GIT_REPO': repo_url, 'PORT': port},
         tty=True,
     )
-
     return container.id, port
 
 def remove_container_by_id(container_id):
@@ -108,15 +130,17 @@ def copy_file_to_container(container_id, name , assingment_id , course_id):
     except subprocess.CalledProcessError as e:
         return False
 
+
 @app.route("/savetoserver", methods=['POST'])
 def post_save():
     if request.method == 'POST' : 
         data = request.get_json()
         username  = data["username"]
         container_id = data["container_id"]
-        assingment_id = data["assingment_id"]
+        assingment_id = data["assignment_id"]
         course_id= data["course_id"]
         if (copy_file_to_container(container_id,username,assingment_id,course_id)):
+            database.create_log(username= data["username"],usertype = "student" , action="saved", course= data["course_id"], assingment= data["assignment_id"])
             result={"error" : False , "message" : "data copied"}
             return jsonify(result)
         else :
@@ -132,10 +156,38 @@ def post_example():
         if (not("repo" in data)):
             result={"error" : True , "message" : "please the repo"}
             return jsonify(result)
+        elif (not("username" in data)):
+            result =  {"error" :  True , "message" :  "please enter the username"}
+            return jsonify(result)
+        
+        elif (not("course_id" in data)) : 
+            result =  {"error" :  True , "meesage" : "please enter the course"}
+            return jsonify(result)
+        elif (not("assignment_id" in data)) :
+            result = {"error" : True , "message" : "please enter the assingment"}
+            return jsonify(result)
         else :
+
             container_id, allocated_port = create_vscode_container(data["repo"])
+            database.create_log(username= data["username"],usertype = "student" , action="create and open ", course= data["course_id"], assingment= data["assignment_id"])
             result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
             return jsonify(result)
+
+
+@app.route('/open/lab/python', methods=['POST'])
+def open_python_lab():
+    if request.method == 'POST':
+        data = request.get_json()
+        # Do something with the posted data
+        username = data["username"]
+        assingment_id = data["assingment_id"]
+        course_id = data["course_id"]
+        filepath="files/"+username+"_"+assingment_id+"_"+course_id
+        print("/"+username+"_"+assingment_id+"_"+course_id)
+
+        container_id, allocated_port = open_vscode_container(data["repo"],filepath)
+        result =  {"error" : True  ,"container_id":container_id, "port" : allocated_port}
+        return jsonify(result)
 
 @app.route('/create/lab/node', methods=['POST'])
 def node_example():
@@ -183,13 +235,25 @@ def copy_data():
 @app.route("/remove", methods= ["POST"])
 def remove_container(): 
     data = request.get_json()
-    container_id = data["container_id"]
-    if remove_container_by_id(container_id):
-        result = {"error" :False , "message" :  "removed successfully"}
-        return jsonify(result)
+    if (not ("container_id" in data)): 
+        return jsonify({"error" : True , "message" : "container id not found"})
+    elif (not ("username" in data)) :
+        return jsonify({"error"  : True , "message" : "username not found"})
+    elif (not ("course_id" in data)) :
+        return jsonify({"error" : True , "message" :  "course_id not found "})
+    elif (not ("assignment_id" in data)) : 
+        return jsonify({"error" :  True , "message" :  "assignment_id not found"})
+    elif (not ("user_type" in data)):
+        return jsonify({"error" : True , "message" : "user_type not found"  })
     else :
-        result = {"error" :True , "message" :  "connot removed "}
-        return jsonify(result)
+        container_id = data["container_id"]
+        if remove_container_by_id(container_id):
+            database.create_log(username= data["username"],usertype = data["user_type"] , action="container closed", course= data["course_id"], assingment= data["assignment_id"])
+            result = {"error" :False , "message" :  "removed successfully"}
+            return jsonify(result)
+        else :
+            result = {"error" :True , "message" :  "not valid container id "}
+            return jsonify(result)
 @app.route('/', methods=['GET'])
 def hello():
     return 'Hello, World!'

@@ -8,17 +8,29 @@ RUN apt-get update && \
 # Install Visual Studio Code Server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
 
-# Set environment variables
-ENV GIT_REPO https://github.com/example/repo.git
-ENV PORT 8080
-ENV FILEPATH sample
+# Set default values for environment variables
+ENV DIRECTORY_TO_OPEN /usr/local/bin/files
+
+# Declare a build argument with a default value
+ARG FOLDER=./files
+
+# Set the environment variable using the build argument
+ENV FOLDER $FOLDER
+ENV FILES $DIRECTORY_TO_OPEN/$FOLDER
+
+# Create a directory in the container to copy files into
+WORKDIR /app
+
+# Copy the entire directory from the host to the container
+ADD $FOLDER .
 
 # Expose the port that code-server will run on
+ENV PORT 8080
 EXPOSE $PORT
 
 # Specify the entrypoint script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY entrypoint2.sh /usr/local/bin/entrypoint2.sh
+RUN chmod +x /usr/local/bin/entrypoint2.sh
 
-# Start code-server with no authentication and open the cloned repository
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Start code-server with no authentication and open the specified directory
+ENTRYPOINT ["/usr/local/bin/entrypoint2.sh"]
