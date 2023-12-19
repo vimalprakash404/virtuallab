@@ -3,8 +3,20 @@ import socket
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess 
+from UiSample import samlpe ,create_lab_template , open_lab_template
 
 from database import vlab_db as database
+
+
+import git
+
+
+def is_git_repo(url):
+    try:
+        git.Repo.clone_from(url, 'temp_clone_directory', depth=1)
+        return True
+    except git.exc.GitCommandError:
+        return False
 
 app = Flask(__name__)
 CORS(app)
@@ -152,6 +164,7 @@ def post_save():
 def post_example():
     if request.method == 'POST':
         data = request.get_json()
+        print(data["repo"])
         # Do something with the posted data
         if (not("repo" in data)):
             result={"error" : True , "message" : "please the repo"}
@@ -167,7 +180,11 @@ def post_example():
             result = {"error" : True , "message" : "please enter the assingment"}
             return jsonify(result)
         else :
+            # if(not is_git_repo(data["repo"])):
+            #     result = {"error" : True , "message" : "not valid reopository"}
+            #     return jsonify(result)
 
+            print(data["repo"])
             container_id, allocated_port = create_vscode_container(data["repo"])
             database.create_log(username= data["username"],usertype = "student" , action="create and open ", course= data["course_id"], assingment= data["assignment_id"])
             result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
@@ -257,12 +274,25 @@ def remove_container():
 @app.route('/', methods=['GET'])
 def hello():
     return 'Hello, World!'
+
+
+@app.route('/render')
+def render():
+    return samlpe(request)
+
+@app.route("/labcreater")
+def creater():
+    return create_lab_template(request)
+
+@app.route("/openvscode/<port_no>/<container_id>")
+def opener(port_no,container_id):
+    return open_lab_template(request,port_no,container_id)
+
+
 if __name__ == "__main__":
-    # Set the Git repository URL, container name
-    repo_url = "https://github.com/vimalprakash404/python.git"
-    container_name = "vscode-containers-4569"
+    
     api_port = 3005
-    app.run(host='0.0.0.0', port=api_port)
+    app.run(host='0.0.0.0', port=api_port,debug=True)
 
     # Create the VS Code Server container
 

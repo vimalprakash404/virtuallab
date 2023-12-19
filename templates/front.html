@@ -16,54 +16,57 @@
     <iframe id="repoIframe" width="100%" height="700" frameborder="0"></iframe>
 
     <script>
-        function checkLink( link) {
-        
-
-        // Make a HEAD request to the server
-        fetch(link, {
-            method: 'GET'
-        })
-        .then(response => {
-            // Check if the status is in the range 200-299 (success)
-            if (response.ok) {
-                console.log("loaded");
-                document.getElementById('repoIframe').src = link;
-            } else {
-                console.log("not loaded")
+        function checkLink(link) {
+            // Make a HEAD request to the server
+            fetch(link, {
+                method: 'GET'
+            })
+            .then(response => {
+                // Check if the status is in the range 200-299 (success)
+                if (response.ok) {
+                    console.log("loaded");
+                    document.getElementById('repoIframe').src = link;
+                } else {
+                    console.log("not loaded");
+                    checkLink(link);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 checkLink(link);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            checkLink(link);
-        });
-    }
+            });
+        }
+    
         function loadRepo() {
             // Get the value of the repo input
             const repoName = document.getElementById('repoInput').value;
             // Make a POST request to the server
-            fetch('http://localhost:3001/create/lab', {
+            fetch('{{domain}}create/lab', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ repo: repoName }),
+                body: JSON.stringify({ repo: repoName, username: "vimal", course_id: "python", assignment_id: "Flask" }),
             })
             .then(response => response.json())
             .then(data => {
+                console.log(data);
                 // Get the HTTP URL from the server response
-                const httpUrl ="http://localhost:"+data.port;
+                const httpUrl = "{{ domain }}/openvscode/"+data.port;
                 console.log(httpUrl);
                 // Load the HTTP URL into the iframe
-                checkLink(httpUrl);
+                // checkLink(httpUrl);
+    
+                // Forward to a new page after response (replace 'new_page.html' with your desired URL)
+                if (data.error === false)
+                    window.location.href = httpUrl;
             })
             .catch(error => {
                 console.error('Error:', error);
             });
         }
-
-        
     </script>
+    
 
 </body>
 </html>

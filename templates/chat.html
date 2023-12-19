@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Bootstrap Chat Page</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+        /* Customize your chat styles here */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        #chat-container {
+            flex: 1;
+            height: 100%;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            padding: 15px;
+        }
+
+        .message-box {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background-color: #cce5ff;
+        }
+
+        .bot-message {
+            background-color: #f0f0f0;
+        }
+
+        #input-container {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div id="chat-container">
+                <!-- Chat messages will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Input area for sending messages at the bottom -->
+    <div id="input-container" class="input-group">
+        <input id="message-input" type="text" class="form-control" placeholder="Type your message...">
+        <div class="input-group-append">
+            <button id="send-btn" class="btn btn-primary" type="button">Send</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js" integrity="sha384-Pzjw8+8TzU1k5AqjJTVf5L1PI2U4L81d5q5dXqUYPmFByv2AA1/gELWRNHK+EVsFh" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        sendBtn.addEventListener('click', function () {
+            const userMessage = messageInput.value.trim();
+
+            if (userMessage !== '') {
+                appendMessage('user', userMessage);
+                // Simulate a bot response (replace this with your actual backend logic)
+                setTimeout(function () {
+                    const botMessage = 'Hi there! This is a bot response.';
+                    appendMessage('bot', botMessage);
+                }, 500);
+                messageInput.value = ''; // Clear the input field
+            }
+        });
+
+        function appendMessage(sender, text) {
+            const messageBox = document.createElement('div');
+            messageBox.className = 'message-box ' + sender + '-message';
+            messageBox.innerHTML = '<strong>' + sender.charAt(0).toUpperCase() + sender.slice(1) + ':</strong> ' + text;
+            chatContainer.appendChild(messageBox);
+            // Scroll to the bottom of the chat container to show the latest message
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    });
+</script>
+
+</body>
+</html>
