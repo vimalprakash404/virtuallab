@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Post Request</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center min-vh-100">
+
+    <div class="card p-4">
+        <h1 class="mb-4">API Post Request</h1>
+
+        <form id="apiForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username:</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="assignmentId" class="form-label">Assignment ID:</label>
+                <input type="text" class="form-control" id="assignmentId" name="assignmentId" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="courseId" class="form-label">Course ID:</label>
+                <input type="text" class="form-control" id="courseId" name="courseId" required>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="submitForm()">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        function submitForm() {
+            // Get form data
+            var username = document.getElementById("username").value;
+            var assignmentId = document.getElementById("assignmentId").value;
+            var courseId = document.getElementById("courseId").value;
+
+            // Prepare request body
+            var requestBody = {
+                "repo": null,
+                "username": username,
+                "assingment_id": assignmentId,
+                "course_id": courseId
+            };
+
+            // Make API POST request
+            fetch("{{domain}}open/lab/python", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                // Handle success response as needed
+                const httpUrl = "{{ domain }}/openvscode/"+data.port+"/"+data.container_id;
+                console.log(httpUrl);
+                if (data.error === false)
+                    window.location.href = httpUrl;
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                // Handle error as needed
+            });
+        }
+    </script>
+</body>
+</html>

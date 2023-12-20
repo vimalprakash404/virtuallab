@@ -1,15 +1,18 @@
 import docker
 import socket
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify 
+import flask
 from flask_cors import CORS
 import subprocess 
-from UiSample import samlpe ,create_lab_template , open_lab_template
+from UiSample import samlpe ,create_lab_template , open_lab_template , opener as open_page
 
 from database import vlab_db as database
 
 
 import git
 
+app = Flask(__name__)
+CORS(app)
 
 def is_git_repo(url):
     try:
@@ -18,8 +21,6 @@ def is_git_repo(url):
     except git.exc.GitCommandError:
         return False
 
-app = Flask(__name__)
-CORS(app)
 
 
 # function to check image is exist or not 
@@ -67,10 +68,10 @@ def open_vscode_container(repo_url ,filepath):
     client = docker.from_env()
     image_name = filepath
     build_args = {'FOLDER': filepath}
-    if  not image_exists(client, image_name):
-        # Build the Docker image
-        image, _ = client.images.build(path='.', tag=image_name, dockerfile='PythonOpenContainer',buildargs=build_args)
-        print("image created")
+    # if  not image_exists(client, image_name):
+    #     # Build the Docker image
+    image, _ = client.images.build(path='.', tag=image_name, dockerfile='PythonOpenContainer',buildargs=build_args)
+    print("image created")
 
     # Find an available port
     port = get_free_tcp_port()
@@ -149,6 +150,7 @@ def post_save():
         data = request.get_json()
         username  = data["username"]
         container_id = data["container_id"]
+        print(container_id)
         assingment_id = data["assignment_id"]
         course_id= data["course_id"]
         if (copy_file_to_container(container_id,username,assingment_id,course_id)):
@@ -203,8 +205,10 @@ def open_python_lab():
         print("/"+username+"_"+assingment_id+"_"+course_id)
 
         container_id, allocated_port = open_vscode_container(data["repo"],filepath)
-        result =  {"error" : True  ,"container_id":container_id, "port" : allocated_port}
-        return jsonify(result)
+        result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
+        response = flask.jsonify(result)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
 
 @app.route('/create/lab/node', methods=['POST'])
 def node_example():
@@ -284,10 +288,12 @@ def render():
 def creater():
     return create_lab_template(request)
 
+@app.route("/opener")
+def ui_opener():
+    return open_page(request)
 @app.route("/openvscode/<port_no>/<container_id>")
 def opener(port_no,container_id):
     return open_lab_template(request,port_no,container_id)
-
 
 if __name__ == "__main__":
     

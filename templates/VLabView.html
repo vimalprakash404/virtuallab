@@ -38,15 +38,12 @@
 
     <script>
         function loadRepo() {
-            // Get the value of the repo input
-            // const repoName = document.getElementById('repoInput').value;
-            // Make a POST request to the server
             fetch('{{domain}}savetoserver', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({  username: "vimal", course_id: "python", assignment_id: "Flask" , container_id : "{{container}}" }),
+                body: JSON.stringify({  username: "vimal", course_id: "python", assignment_id: "flask" , container_id : "{{container_id}}" }),
             })
             .then(response => response.json())
             .then(data => {
