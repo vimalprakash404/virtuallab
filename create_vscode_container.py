@@ -1,6 +1,7 @@
 import docker
 import socket
 from flask import Flask, request, jsonify 
+from flask_apscheduler import APScheduler
 import flask
 from flask_cors import CORS
 import subprocess 
@@ -8,11 +9,30 @@ from UiSample import samlpe ,create_lab_template , open_lab_template , opener as
 
 from database import vlab_db as database
 
+import datetime
+
+
 
 import git
 
 app = Flask(__name__)
 CORS(app)
+scheduler = APScheduler()
+
+app.config['SCHEDULER_API_ENABLED'] = True
+app.config['SCHEDULER_JOB_DEFAULTS'] = {'misfire_grace_time': 5}
+
+def scheduled_task():
+    data= database.get_live_containers()
+    for i in data :
+        if remove_container_by_id(container_id=i):
+            print("container removed : ", i)
+    print(f"Task executed at {datetime.datetime.utcnow()}")
+    print(data)
+
+
+scheduler.add_job(id='scheduled_task', func=scheduled_task, trigger='interval', seconds=1)
+scheduler.start()
 
 def is_git_repo(url):
     try:
@@ -129,6 +149,7 @@ def remove_container_by_id(container_id):
         container = client.containers.get(container_id)
         container.stop()
         container.remove()
+        database.update_container_log(container_id=container_id)
         return True
     except docker.errors.NotFound :
         return False
@@ -189,6 +210,7 @@ def post_example():
             print(data["repo"])
             container_id, allocated_port = create_vscode_container(data["repo"])
             database.create_log(username= data["username"],usertype = "student" , action="create and open ", course= data["course_id"], assingment= data["assignment_id"])
+            database.create_container_log(container_id=container_id, type="Create" , status="Live")
             result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
             return jsonify(result)
 

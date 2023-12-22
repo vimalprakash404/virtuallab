@@ -1,3 +1,5 @@
+sudo aa-remove-unknown
+
 docker build -t copyimage10 -f PythonOpenContainer .
  docker run -e FOLDER=/samplea -e PORT=8062 -p 8062:8062 
 

@@ -6,4 +6,3 @@ log = {
     "action" :  { "type" :  "string"  , "required" :  True },
     "time"  :  {"type" : "date" , "required" : True }
 }
-
