@@ -25,8 +25,9 @@ app.config['SCHEDULER_JOB_DEFAULTS'] = {'misfire_grace_time': 5}
 def scheduled_task():
     data= database.get_live_containers()
     for i in data :
-        if remove_container_by_id(container_id=i):
-            print("container removed : ", i)
+        # if remove_container_by_id(container_id=i):
+        #     print("container removed : ", i)
+        pass
     print(f"Task executed at {datetime.datetime.utcnow()}")
     print(data)
 
@@ -182,7 +183,17 @@ def post_save():
             result={"error" : True , "message" : "Some Error"}
             return jsonify(result)
 
-
+@app.route("/update/time")
+def container_time_updater(method=["POST"]):
+    if request.method ==  "GET" :
+        data = request.get_json()
+        print("data")
+        container_id = data["container_id"]
+        if database.update_conatiner_time(container_id) :
+            result = {"message" : "upadted data"}
+        else :
+            result = {"message" : "contaner not exist"}
+        return jsonify(result)
 @app.route('/create/lab', methods=['POST'])
 def post_example():
     if request.method == 'POST':

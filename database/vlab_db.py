@@ -47,7 +47,7 @@ def get_live_containers():
     container_log = database["container_log"]
 
     # Calculate the start time 5 seconds ago from the current time
-    start_time_limit = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
+    start_time_limit = datetime.datetime.utcnow() - datetime.timedelta(seconds=10)
 
     # Query to find documents with status "Live" and start time within the last 5 seconds
     query = {
@@ -65,3 +65,16 @@ def get_live_containers():
     container_ids = [doc["container_id"] for doc in result]
 
     return container_ids
+
+def update_conatiner_time(container_id):
+    print("containerid", container_id)
+    container_log = database["container_log"]
+    print("updateing container_id",container_id)
+    query = {"container_id": container_id}
+    update_data = {"$set": {"time": datetime.datetime.utcnow()}}
+    if container_log.find_one({"container_id": container_id}):
+        container_log.update_one(query, update_data)
+        return True
+    else :
+        return False
+    
