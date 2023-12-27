@@ -1,3 +1,4 @@
 docker
 Flask
 Flask-Cors
+pymongo
