@@ -57,10 +57,17 @@ def image_exists(client , image_name ):
 
 
 def get_free_tcp_port():
-    # Create a socket to find an available port
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('localhost', 0))
-        return s.getsockname()[1]
+    start_port=3002
+    end_port = 3035
+    for port in range(start_port, end_port + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('localhost', port))
+                return port
+            except OSError:
+                continue
+    raise ValueError("No free port available in the specified range")
+
 
 def create_vscode_container(repo_url):
     client = docker.from_env()

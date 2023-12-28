@@ -2,3 +2,4 @@ docker
 Flask
 Flask-Cors
 pymongo
+flask_apscheduler
