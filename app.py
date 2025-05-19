@@ -28,8 +28,8 @@ def scheduled_task():
         # if remove_container_by_id(container_id=i):
         #     print("container removed : ", i)
         pass
-    print(f"Task executed at {datetime.datetime.utcnow()}")
-    print(data)
+    # print(f"Task executed at {datetime.datetime.utcnow()}")
+    # print(data)
 
 
 scheduler.add_job(id='scheduled_task', func=scheduled_task, trigger='interval', seconds=1)
@@ -91,6 +91,19 @@ def create_vscode_container(repo_url):
     )
     return container.id, port
 
+def print_docker_log(container_id):
+    client = docker.from_env()
+    try:
+        container = client.containers.get(container_id)
+        logs = container.logs().decode('utf-8')
+        print(logs)
+        return logs
+    except docker.errors.NotFound:
+        print("Container not found.")
+        return "Container not found."
+    except Exception as e:
+        print(f"Error: {e}")
+        return str(e)
 
 def open_vscode_container(repo_url ,filepath):
     client = docker.from_env()
@@ -133,6 +146,7 @@ def create_vscode_container_node(repo_url):
         environment={'GIT_REPO': repo_url, 'PORT': port},
         tty=True,
     )
+    print_docker_log(container.id)
     return container.id, port
 
 def create_jupiter_container(repo_url):

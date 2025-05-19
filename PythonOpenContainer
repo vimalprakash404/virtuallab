@@ -29,7 +29,7 @@ ENV PORT 8080
 EXPOSE $PORT
 
 # Specify the entrypoint script
-COPY entrypoint2.sh /usr/local/bin/entrypoint2.sh
+COPY entrypoint2.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint2.sh
 
 # Start code-server with no authentication and open the specified directory
