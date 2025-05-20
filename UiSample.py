@@ -20,7 +20,7 @@ def create_lab_template(request):
     print(host)
     return render_template('front.html', message='Hello from Flask!'+current_domain, domain=current_domain, host= "http://"+host)
 
-def open_lab_template(request,port_no,container_id):
+def open_lab_template(request,port_no,container_id,username,assingment_id,course_id):
     current_domain = request.url_root
     host_with_port = request.host
     print(host_with_port)
@@ -28,7 +28,7 @@ def open_lab_template(request,port_no,container_id):
     host, port = host_with_port.split(':', 1) if ':' in host_with_port else (host_with_port, None)
     print(host)
     time.sleep(5)
-    return render_template('VLabView.html', message='Hello from Flask!'+current_domain, domain=current_domain, host= "http://"+host+":"+port_no ,container_id = container_id)
+    return render_template('VLabView.html', message='Hello from Flask!'+current_domain, domain=current_domain, host= "http://"+host+":"+port_no ,container_id = container_id, username=username, assingment_id=assingment_id, course_id=course_id)
 
 
 def opener(request):

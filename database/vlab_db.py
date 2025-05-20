@@ -1,6 +1,7 @@
 from database.connection import client , database 
 from database.schema import log 
 import datetime
+from bson import ObjectId  # Add this import at the top
 
 def create_log(username,usertype, action, course , assingment):
     data  ={ 
@@ -18,20 +19,35 @@ def create_log(username,usertype, action, course , assingment):
 
 
 
-def create_container_log(container_id , status, type ):
+def create_container_log(username,container_id , status, type , assignmentId , courseId , port):
     data = {
+        'username' : username ,
         "container_id" : container_id ,
         "type" : type ,
         "status" : status ,
         "start_time" : datetime.datetime.utcnow(),
         "end_time" : None,
         "time" : datetime.datetime.utcnow(),
+        "assignmentId" : assignmentId,
+        "courseId" : courseId,
+        "port" : port
     }
 
-    container_log=database["container_log"]
+    container_log = database["container_log"]
+    result = container_log.insert_one(data)
+    return result.inserted_id
 
-    container_log.insert_one(data)
-    return
+def get_container_log(_id):
+    container_log = database["container_log"]
+    try:
+        query = {"_id": ObjectId(_id)}
+    except Exception:
+        query = {"_id": _id}
+    result = container_log.find_one(query)
+    if result and "_id" in result:
+        result["_id"] = str(result["_id"])
+    return result
+
 
 def update_container_log(container_id, additional_data=None):
     container_log = database["container_log"]
@@ -77,4 +93,4 @@ def update_conatiner_time(container_id):
         return True
     else :
         return False
-    
+

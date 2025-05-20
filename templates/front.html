@@ -17,23 +17,58 @@
             <input type="text" class="form-control" id="repoInput" placeholder="Enter repo git url">
         </div>
 
+        <div class="mb-3">
+            <label for="usernameInput" class="form-label">Username:</label>
+            <input type="text" class="form-control" id="usernameInput" placeholder="Enter username">
+        </div>
+        <div class="mb-3">
+            <label for="assignmentIdInput" class="form-label">Assignment ID:</label>
+            <input type="text" class="form-control" id="assignmentIdInput" placeholder="Enter assignment ID">
+        </div>
+        <div class="mb-3">
+            <label for="courseIdInput" class="form-label">Course ID:</label>
+            <input type="text" class="form-control" id="courseIdInput" placeholder="Enter course ID">
+        </div>
+
+        <!-- Language Dropdown -->
+        <div class="mb-3">
+            <label for="languageSelect" class="form-label">Select Language:</label>
+            <select class="form-select" id="languageSelect">
+                <option value="python">Python</option>
+                <option value="node">Node</option>
+            </select>
+        </div>
+
         <button type="button" class="btn btn-primary" onclick="loadRepo()">Load Repo</button>
 
         <div class="mt-3">
             <iframe id="repoIframe" width="100%" height="700" frameborder="0"></iframe>
         </div>
     </div>
+
+    <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.7); z-index:9999; align-items:center; justify-content:center;">
+        <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <script>
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
         function checkLink(link) {
-            // Make a HEAD request to the server
             fetch(link, {
                 method: 'GET'
             })
                 .then(response => {
-                    // Check if the status is in the range 200-299 (success)
                     if (response.ok) {
                         console.log("loaded");
                         document.getElementById('repoIframe').src = link;
+                        hideLoading();
                     } else {
                         console.log("not loaded");
                         checkLink(link);
@@ -46,36 +81,49 @@
         }
 
         function loadRepo() {
-            // Get the value of the repo input
+            showLoading();
             const repoName = document.getElementById('repoInput').value;
-            // Make a POST request to the server
-            fetch('{{domain}}create/lab', {
+            const username = document.getElementById('usernameInput').value;
+            const assignmentId = document.getElementById('assignmentIdInput').value;
+            const courseId = document.getElementById('courseIdInput').value;
+            const language = document.getElementById('languageSelect').value;
+
+            // Choose endpoint based on language
+            let endpoint = '';
+            if (language === 'python') {
+                endpoint = '{{domain}}create/lab/python';
+            } else if (language === 'node') {
+                endpoint = '{{domain}}create/lab/node';
+            }
+
+            fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ repo: repoName, username: "vimal", course_id: "python", assignment_id: "Flask" }),
+                body: JSON.stringify({
+                    repo: repoName,
+                    username: username,
+                    course_id: courseId,
+                    assignment_id: assignmentId
+                }),
             })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    // Get the HTTP URL from the server response
-                    const httpUrl = "{{ domain }}openvscode/" + data.port + "/" + data.container_id;
+                    const httpUrl = "{{ domain }}openvscode/" + data.port + "/" + data.container_id + "/" + username + "/" + assignmentId + "/" + courseId;
                     console.log(httpUrl);
-                    // Load the HTTP URL into the iframe
-                    // checkLink(httpUrl);
-
-                    // Forward to a new page after response (replace 'new_page.html' with your desired URL)
                     if (data.error === false)
                         window.location.href = httpUrl;
+                    else
+                        hideLoading();
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    hideLoading();
                 });
         }
     </script>
 
-
 </body>
-
 </html>

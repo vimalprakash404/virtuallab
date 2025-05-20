@@ -4,10 +4,13 @@ from flask import Flask, request, jsonify
 from flask_apscheduler import APScheduler
 import flask
 from flask_cors import CORS
+import os
 import subprocess 
 from UiSample import samlpe ,create_lab_template , open_lab_template , opener as open_page
 
-from database import vlab_db as database
+from database import vlab_db as database 
+
+
 
 import datetime
 
@@ -107,7 +110,7 @@ def print_docker_log(container_id):
 
 def open_vscode_container(repo_url ,filepath):
     client = docker.from_env()
-    image_name = filepath
+    image_name = "vs-code-python-opener"
     build_args = {'FOLDER': filepath}
     # if  not image_exists(client, image_name):
     #     # Build the Docker image
@@ -126,6 +129,31 @@ def open_vscode_container(repo_url ,filepath):
         tty=True,
     )
     return container.id, port
+
+
+def open_vscode_node_container(filepath):
+
+    client = docker.from_env()
+    image_name = "vs-code-nodejs-opener" 
+    build_args = {'FOLDER': filepath}
+    # if  not image_exists(client, image_name):
+    #     # Build the Docker image
+    image, _ = client.images.build(path='.', tag=image_name, dockerfile='OpenNode',buildargs=build_args)
+    print("image created")
+
+    # Find an available port
+    port = get_free_tcp_port()
+
+    # Create and run the Docker container
+    container = client.containers.run(
+        image_name,
+        detach=True,
+        ports={f'{port}/tcp': port},
+        environment={ 'PORT': port, 'FOLDER' : filepath},
+        tty=True,
+    )
+    return container.id, port
+
 
 
 def create_vscode_container_node(repo_url):
@@ -152,7 +180,7 @@ def create_vscode_container_node(repo_url):
 def create_jupiter_container(repo_url):
     client = docker.from_env()
     # Build the Docker image
-    image, _ = client.images.build(path='.', tag='my-vscode-server', dockerfile='Dockerfile')
+    image, _ = client.images.build(path='.', tag='my-vscode-jupyter-server', dockerfile='Dockerfile')
     # Find an available port
     port = get_free_tcp_port()
     # Create and run the Docker container
@@ -242,8 +270,8 @@ def post_example():
             print(data["repo"])
             container_id, allocated_port = create_vscode_container(data["repo"])
             database.create_log(username= data["username"],usertype = "student" , action="create and open ", course= data["course_id"], assingment= data["assignment_id"])
-            database.create_container_log(container_id=container_id, type="Create" , status="Live")
-            result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
+            id = database.create_container_log(username=data["username"], container_id=container_id, type="Create" , status="Live" , assignmentId=data["assignment_id"], courseId=data["course_id"] , port=allocated_port)
+            result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port , "id" : id}
             return jsonify(result)
 
 
@@ -258,11 +286,68 @@ def open_python_lab():
         filepath="files/"+username+"_"+assingment_id+"_"+course_id
         print("/"+username+"_"+assingment_id+"_"+course_id)
 
-        container_id, allocated_port = open_vscode_container(data["repo"],filepath)
-        result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
+        container_id, allocated_port = open_vscode_container(data["repo"], filepath)
+        id = database.create_container_log(
+            username=data["username"],
+            container_id=container_id,
+            type="Create",
+            status="Live",
+            assignmentId=data["assignment_id"],
+            courseId=data["course_id"],
+            port=allocated_port
+        )
+        result = {
+            "error": False,
+            "container_id": container_id,
+            "port": allocated_port,
+            "id": str(id)  # Convert ObjectId to string for JSON serialization
+        }
         response = flask.jsonify(result)
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
+    
+    
+@app.route('/list/folders', methods=['GET'])
+def list_folders():
+    base_path = os.path.join(os.getcwd(), 'files')
+    try:
+        folders = [name for name in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, name))]
+        return jsonify({"folders": folders, "error": False})
+    except Exception as e:
+        return jsonify({"error": True, "message": str(e)})
+    
+
+@app.route('/open/lab/node', methods=['POST'])
+def open_node_lab():    
+    if request.method == 'POST':
+        data = request.get_json()
+        # Do something with the posted data
+        username = data["username"]
+        assingment_id = data["assingment_id"]
+        course_id = data["course_id"]
+        filepath = "files/" + username + "_" + assingment_id + "_" + course_id
+        print("/" + username + "_" + assingment_id + "_" + course_id)
+
+        container_id, allocated_port = open_vscode_node_container(filepath)
+        id = database.create_container_log(
+            username=data["username"],
+            container_id=container_id,
+            type="Create",
+            status="Live",
+            assignmentId=data["assignment_id"],
+            courseId=data["course_id"],
+            port=allocated_port
+        )
+        result = {
+            "error": False,
+            "container_id": container_id,
+            "port": allocated_port,
+            "id": str(id)  # Convert ObjectId to string for JSON serialization
+        }
+        response = flask.jsonify(result)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
 
 @app.route('/create/lab/node', methods=['POST'])
 def node_example():
@@ -274,10 +359,24 @@ def node_example():
             return jsonify(result)
         else :
             container_id, allocated_port = create_vscode_container_node(data["repo"])
-            result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
+            id = database.create_container_log(
+                username=data["username"],
+                container_id=container_id,
+                type="Create",
+                status="Live",
+                assignmentId=data["assignment_id"],
+                courseId=data["course_id"],
+                port=allocated_port
+            )
+            result = {
+                "error": False,
+                "container_id": container_id,
+                "port": allocated_port,
+                "id": str(id)  # Convert ObjectId to string
+            }
             return jsonify(result)
 
-@app.route('/create/jupiter', methods=['POST'])
+@app.route('/create/lab/python', methods=['POST'])
 def post_jupiter():
     if request.method == 'POST':
         data = request.get_json()
@@ -287,7 +386,21 @@ def post_jupiter():
             return jsonify(result)
         else :
             container_id, allocated_port = create_jupiter_container(data["repo"])
-            result =  {"error" : False  ,"container_id":container_id, "port" : allocated_port}
+            id = database.create_container_log(
+                username=data["username"],
+                container_id=container_id,
+                type="Create",
+                status="Live",
+                assignmentId=data["assignment_id"],
+                courseId=data["course_id"],
+                port=allocated_port
+            )
+            result = {
+                "error": False,
+                "container_id": container_id,
+                "port": allocated_port,
+                "id": str(id)  # Convert ObjectId to string
+            }
             return jsonify(result)
 
 @app.route('/copy/data', methods=['POST'])
@@ -334,6 +447,16 @@ def hello():
     return 'Hello, World!'
 
 
+@app.route('/get/container-details/<container_id>')
+def get_container_details(container_id):
+    # Logic to retrieve container details
+    data = database.get_container_log(container_id)
+    print("data",data)
+    if data:
+        return jsonify({"container_id": container_id, "status": "running" , "details": data}), 200
+    else:
+        return jsonify({"error": True, "message": "Container not found"}), 404
+
 @app.route('/render')
 def render():
     return samlpe(request)
@@ -345,9 +468,9 @@ def creater():
 @app.route("/opener")
 def ui_opener():
     return open_page(request)
-@app.route("/openvscode/<port_no>/<container_id>")
-def opener(port_no,container_id):
-    return open_lab_template(request,port_no,container_id)
+@app.route("/openvscode/<port_no>/<container_id>/<username>/<assingment_id>/<course_id>")
+def opener(port_no,container_id,username,assingment_id,course_id):
+    return open_lab_template(request,port_no,container_id,username,assingment_id,course_id)
 
 if __name__ == "__main__":
     
